@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm-inference
+  labels:
+    app: vllm-inference
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vllm-inference
+  template:
+    metadata:
+      labels:
+        app: vllm-inference
+    spec:
+      containers:
+        - name: vllm
+          image: vllm/vllm-openai:latest
+          args:
+            - "--model"
+            - "microsoft/Phi-3-mini-4k-instruct"
+            - "--port"
+            - "8000"
+            - "--gpu-memory-utilization"
+            - "0.7"
+            - "--dtype"
+            - "half"
+          ports:
+            - containerPort: 8000
+              name: http
+          resources:
+            limits:
+              nvidia.com/gpu: 1
+            requests:
+              nvidia.com/gpu: 1
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 60
+            periodSeconds: 20
